@@ -33,12 +33,64 @@ import json
 from email.header import decode_header
 
 # Load username and password from JSON file
-with open('email_credentials.json') as file:
+with open('email_credentials.json', 'r') as file:
     data = json.load(file)
     username = data['username']
     password = data['password']
 
+if username == '' or password == '':
+    print('Username or Password is empty')
+    exit()
 
+try:
+    mail = imaplib.IMAP4_SSL('imap.gmail.com')
+    mail.login(username, password)
+    print('Login Successful')
+    inbox = mail.select('inbox')
+    print(f'Inbox found {inbox}')
+except imaplib.IMAP4.error as e:
+    print(f'Login Failed: {e}')
 
+batch_size = 50
+email_dict = {}
 
+def get_emails():
+    
+    status, messages = mail.search(None, 'ALL')
+    if status != 'OK':
+        print('No Messages found')
+        return
+    
+    email_ids = messages[0].split()
+    total_emails = len(email_ids)
+    print(f'{len(email_ids)} emails found')
 
+    for i in range(total_emails - batch_size, total_emails):
+        email_id = email_ids[i]
+        # print(i)
+        # print(email_ids[i])
+
+        res, msg_data = mail.fetch(email_ids[i], '(RFC822)')
+        # print(res)
+
+        for response_part in msg_data:
+            if isinstance(response_part, tuple):
+                msg = email.message_from_bytes(response_part[1])
+                
+                # Get the 'From' field, which contains the email address
+                from_header = msg.get("From")
+                if from_header:
+                    # Parse the 'From' field to extract the email address
+                    from_address = email.utils.parseaddr(from_header)[1]
+                    # print(f"Email ID: {email_id}, From: {from_address}")
+                    if from_address in email_dict:
+                        email_dict[from_address] += 1
+                    else:
+                        email_dict[from_address] = 1
+    return
+
+get_emails()
+print(email_dict)
+
+def checkForFolder():
+    pass
