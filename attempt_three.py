@@ -29,19 +29,21 @@ import imaplib
 import email
 import json
 from email.header import decode_header
+import email.utils
+import sys
 
 # Load username and password from JSON file
 with open('email_credentials.json', 'r') as file:
     data = json.load(file)
-    username = data['username_dave']
-    password = data['password_dave']
+    username = data['username_kankei']
+    password = data['password_kankei']
 # Make sure username and password are not empty
 if username == '' or password == '':
     print('Username or Password is empty')
     exit()
 
 try:
-    mail = imaplib.IMAP4_SSL('imap.gmail.com')
+    mail = imaplib.IMAP4_SSL('imap.123-reg.co.uk')
     mail.login(username, password)
     print('Login Successful')
     inbox = mail.select('inbox')
@@ -49,26 +51,39 @@ try:
 except imaplib.IMAP4.error as e:
     print(f'Login Failed: {e}')
 
+def get_email_ids():
+    status, messages = mail.search(None, 'ALL')
+    if status == 'OK':
+        email_ids = messages[0].split()
+        return email_ids
+    else:
+        print('Failed to search emails')
+        return []
+
 status, messages = mail.search(None, 'ALL')
-email_ids = messages[0].split()
-print(status)
-print(email_ids[-1].decode())
+email_ids = get_email_ids()
+# print(status)
+# print(email_ids[-1].decode())
 
 
-batch_size = 5
+batch_size = 10
 
 folders_list = []
 
 def getFolders():
     status, folders = mail.list()
-    for folder in folders:
-        folder_name = folder.decode().split('"/"')[-1].strip().strip('"')
-        if '[Gmail]' not in folder_name:
-            folders_list.append(folder_name)
+    if status == 'OK':
+        for folder in folders:
+            folder_name = folder.decode().split('"/"')[-1].strip().strip('"')
+            # if '[Gmail]' not in folder_name:
+            #     folders_list.append(folder_name)
+            if folder_name and folder_name[0] == 'z':
+                folders_list.append(folder_name[1:])
+    folders_list.sort()
 getFolders()
 
 # print(folders_list)
-breakpoint()
+# breakpoint()
 
 def findAllFromEmails(email_address):
     status, messages = mail.search(None, f'FROM "{email_address}"')
@@ -76,6 +91,15 @@ def findAllFromEmails(email_address):
 
     print(f'Emails from {email_address}: {len(email_ids)}')
     return email_ids
+
+def email_details(email_id):
+    status, msg_data = mail.fetch(email_id, '(RFC822)')
+    for response_part in msg_data:
+        if isinstance(response_part, tuple):
+            email_message = email.message_from_bytes(response_part[1])
+            from_name, from_email = email.utils.parseaddr(email_message['From'])
+            print('Email from: ' + from_email)
+            print('Subject: ' + email_message['Subject'])
 
 def moveEmails(email_ids):
 
@@ -87,6 +111,8 @@ def moveEmails(email_ids):
         print("Type folder name to move emails to that folder")
         print("Type 'pass' to skip")
         choice = input('What would you like to do: ')
+        if choice.lower() == 'quit':
+            sys.exit()
         if choice.lower() == 'new':
             folder_name = input('Enter folder name: ')
             mail.create(folder_name)
@@ -94,20 +120,17 @@ def moveEmails(email_ids):
             for email_id in email_ids:
                 # breakpoint()
                 print(email_id)
-                status, msg_data = mail.fetch(email_id, '(RFC822)')
-                for response_part in msg_data:
-                    if isinstance(response_part, tuple):
-                        email_message = email.message_from_bytes(response_part[1])
-                        from_name, from_email = email.utils.parseaddr(email_message['From'])
-                        print('Email from: ' + from_email)
-                        print('Subject: ' + email_message['Subject'])
-                        mail.copy(email_id, folder_name)
-                        emails_to_delete.append(email_id)
+                email_details(email_id)
+                mail.copy(email_id, folder_name)
+                emails_to_delete.append(email_id)
             break
         elif choice.lower() == 'pass':
             break
         elif choice in folders_list:
             for email_id in email_ids:
+                print(email_id)
+                email_details(email_id)
+
                 mail.copy(email_id, choice)
                 emails_to_delete.append(email_id)
             break
@@ -120,21 +143,32 @@ def moveEmails(email_ids):
         mail.store(email_id, '+FLAGS', '\\Deleted')
     
     mail.expunge()
+    
 
-for i in range(-1, batch_size * -1, -1):
-    print(i)
-    status, msg_data = mail.fetch(email_ids[i].decode(), '(RFC822)')
-    # mail.fetch return data is tuples
-    # for each tuple in msg_data...
-    for response_part in msg_data:
-        # if response_part is tuple, which it should be...
-        if isinstance(response_part, tuple):
-            email_message = email.message_from_bytes(response_part[1])
-            # print(email_message['To'])
-            from_name, from_email = email.utils.parseaddr(email_message['From'])
-            print('Email from: ' + from_email)
-            print('Subject: ' + email_message['Subject'])
+if email_ids:
+    while email_ids:
+        for i in range(-1, -min(batch_size, len(email_ids))-1, -1):
+            print(i)
+            if i < -len(email_ids):
+                print(f'Invalid index: {i}')
+                continue
+            try:
+                status, msg_data = mail.fetch(email_ids[i].decode(), '(RFC822)')
+                if status == 'OK':
+                    for response_part in msg_data:
+                        if isinstance(response_part, tuple):
+                            email_message = email.message_from_bytes(response_part[1])
+                            from_name, from_email = email.utils.parseaddr(email_message['From'])
+                            print('Email from: ' + from_email)
+                            print('Subject: ' + email_message['Subject'])
 
-            ids = findAllFromEmails(from_email)
-            print('ids = ' + str(ids))
-            moveEmails(ids)
+                            ids = findAllFromEmails(from_email)
+                            print('ids = ' + str(ids))
+                            moveEmails(ids)
+                else:
+                    print(f'Failed to fetch email with ID {email_ids[i].decode()}')
+            except imaplib.IMAP4.error as e:
+                print(f'Error fetching email with ID {email_ids[i].decode()}: {e}')
+        email_ids = get_email_ids()
+else:
+    print('No emails found')
