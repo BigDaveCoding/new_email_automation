@@ -80,6 +80,8 @@ def getFolders():
             #     folders_list.append(folder_name)
             if folder_name and folder_name[0] == 'z':
                 folders_list.append(folder_name[1:])
+            else:
+                folders_list.append(folder_name)   
     folders_list.sort()
 getFolders()
 
@@ -164,6 +166,7 @@ if email_ids:
                             from_name, from_email = email.utils.parseaddr(email_message['From'])
                             print("Folders available:\n " + "\n".join(folders_list))
                             print('\nEmail from: ' + from_email)
+                            print('Name: ' + from_name)
                             print('Subject: ' + email_message['Subject'])
 
                             ids = findAllFromEmails(from_email)
