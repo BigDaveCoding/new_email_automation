@@ -31,6 +31,7 @@ import json
 from email.header import decode_header
 import email.utils
 import sys
+import os
 
 # Load username and password from JSON file
 with open('email_credentials.json', 'r') as file:
@@ -66,7 +67,7 @@ email_ids = get_email_ids()
 # print(email_ids[-1].decode())
 
 
-batch_size = 10
+batch_size = 30
 
 folders_list = []
 
@@ -106,10 +107,11 @@ def moveEmails(email_ids):
     emails_to_delete = []
 
     while True:
-        print("Folders available: " + str(folders_list))
+        print("Folders available:\n " + "\n".join(folders_list))
         print("Type 'new' to create a new folder")
         print("Type folder name to move emails to that folder")
         print("Type 'pass' to skip")
+        print("Type 'quit' to exit")
         choice = input('What would you like to do: ')
         if choice.lower() == 'quit':
             sys.exit()
@@ -137,12 +139,13 @@ def moveEmails(email_ids):
         else:
             print('Invalid choice, Please try again')
     
-    breakpoint()
+    # breakpoint()
     
     for email_id in emails_to_delete:
         mail.store(email_id, '+FLAGS', '\\Deleted')
     
     mail.expunge()
+    os.system('clear')
     
 
 if email_ids:
