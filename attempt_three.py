@@ -179,3 +179,9 @@ if email_ids:
         email_ids = get_email_ids()
 else:
     print('No emails found')
+
+
+
+    #When creating folder it doesnt accept spaces
+    # for example i create a folder zDave Smith
+    # the folder created will be zDave
