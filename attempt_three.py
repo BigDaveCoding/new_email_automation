@@ -54,15 +54,28 @@ email_ids = messages[0].split()
 print(status)
 print(email_ids[-1].decode())
 
-status, msg_data = mail.fetch(email_ids[-1].decode(), '(RFC822)')
-# mail.fetch return data is tuples
-# for each tuple in msg_data...
-for response_part in msg_data:
-    # if response_part is tuple, which it should be...
-    if isinstance(response_part, tuple):
-        email_message = email.message_from_bytes(response_part[1])
-        # print(email_message['To'])
-        from_name, from_email = email.utils.parseaddr(email_message['From'])
-        print('Email from: ' + from_email)
-        print('Subject: ' + email_message['Subject'])
 
+batch_size = 5
+
+def findAllFromEmails(email_address):
+    status, messages = mail.search(None, 'FROM', email_address)
+    email_ids = messages[0].split()
+
+    print(f'Emails from {email_address}: {len(email_ids)}')
+    return
+
+for i in range(-1, batch_size * -1, -1):
+    print(i)
+    status, msg_data = mail.fetch(email_ids[i].decode(), '(RFC822)')
+    # mail.fetch return data is tuples
+    # for each tuple in msg_data...
+    for response_part in msg_data:
+        # if response_part is tuple, which it should be...
+        if isinstance(response_part, tuple):
+            email_message = email.message_from_bytes(response_part[1])
+            # print(email_message['To'])
+            from_name, from_email = email.utils.parseaddr(email_message['From'])
+            print('Email from: ' + from_email)
+            print('Subject: ' + email_message['Subject'])
+
+            findAllFromEmails(from_email)
