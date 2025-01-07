@@ -107,7 +107,7 @@ def moveEmails(email_ids):
     emails_to_delete = []
 
     while True:
-        print("Folders available:\n " + "\n".join(folders_list))
+        # print("Folders available:\n " + "\n".join(folders_list))
         print("Type 'new' to create a new folder")
         print("Type folder name to move emails to that folder")
         print("Type 'pass' to skip")
@@ -162,7 +162,8 @@ if email_ids:
                         if isinstance(response_part, tuple):
                             email_message = email.message_from_bytes(response_part[1])
                             from_name, from_email = email.utils.parseaddr(email_message['From'])
-                            print('Email from: ' + from_email)
+                            print("Folders available:\n " + "\n".join(folders_list))
+                            print('\nEmail from: ' + from_email)
                             print('Subject: ' + email_message['Subject'])
 
                             ids = findAllFromEmails(from_email)
