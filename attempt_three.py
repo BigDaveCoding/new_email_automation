@@ -65,20 +65,24 @@ def getFolders():
         folder_name = folder.decode().split('"/"')[-1].strip().strip('"')
         if '[Gmail]' not in folder_name:
             folders_list.append(folder_name)
-
 getFolders()
-print(folders_list)
+
+# print(folders_list)
 breakpoint()
 
 def findAllFromEmails(email_address):
-    status, messages = mail.search(None, 'FROM', email_address)
+    status, messages = mail.search(None, f'FROM "{email_address}"')
     email_ids = messages[0].split()
 
     print(f'Emails from {email_address}: {len(email_ids)}')
     return email_ids
 
 def moveEmails(email_ids):
+
+    emails_to_delete = []
+
     while True:
+        print("Folders available: " + str(folders_list))
         print("Type 'new' to create a new folder")
         print("Type folder name to move emails to that folder")
         print("Type 'pass' to skip")
@@ -88,12 +92,34 @@ def moveEmails(email_ids):
             mail.create(folder_name)
             print(f'Folder {folder_name} created')
             for email_id in email_ids:
-                mail.copy(email_id, folder_name)
-                mail.store(email_id, '+FLAGS', '\\Deleted')
-            mail.expunge()
+                # breakpoint()
+                print(email_id)
+                status, msg_data = mail.fetch(email_id, '(RFC822)')
+                for response_part in msg_data:
+                    if isinstance(response_part, tuple):
+                        email_message = email.message_from_bytes(response_part[1])
+                        from_name, from_email = email.utils.parseaddr(email_message['From'])
+                        print('Email from: ' + from_email)
+                        print('Subject: ' + email_message['Subject'])
+                        mail.copy(email_id, folder_name)
+                        emails_to_delete.append(email_id)
             break
         elif choice.lower() == 'pass':
             break
+        elif choice in folders_list:
+            for email_id in email_ids:
+                mail.copy(email_id, choice)
+                emails_to_delete.append(email_id)
+            break
+        else:
+            print('Invalid choice, Please try again')
+    
+    breakpoint()
+    
+    for email_id in emails_to_delete:
+        mail.store(email_id, '+FLAGS', '\\Deleted')
+    
+    mail.expunge()
 
 for i in range(-1, batch_size * -1, -1):
     print(i)
