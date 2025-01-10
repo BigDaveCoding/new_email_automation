@@ -119,7 +119,8 @@ def moveEmails(email_ids):
             sys.exit()
         if choice.lower() == 'new':
             folder_name = input('Enter folder name: ')
-            mail.create(folder_name)
+            quoted_folder_name = f'"{folder_name}"'
+            mail.create(quoted_folder_name)
             print(f'Folder {folder_name} created')
             for email_id in email_ids:
                 # breakpoint()
@@ -157,8 +158,10 @@ if email_ids:
             if i < -len(email_ids):
                 print(f'Invalid index: {i}')
                 continue
+            email_id = email_ids[i].decode()
+            print(f'Processing email with ID {email_id}')
             try:
-                status, msg_data = mail.fetch(email_ids[i].decode(), '(RFC822)')
+                status, msg_data = mail.fetch(email_id, '(RFC822)')
                 if status == 'OK':
                     for response_part in msg_data:
                         if isinstance(response_part, tuple):
@@ -173,9 +176,9 @@ if email_ids:
                             print('ids = ' + str(ids))
                             moveEmails(ids)
                 else:
-                    print(f'Failed to fetch email with ID {email_ids[i].decode()}')
+                    print(f'Failed to fetch email with ID {email_id}')
             except imaplib.IMAP4.error as e:
-                print(f'Error fetching email with ID {email_ids[i].decode()}: {e}')
+                print(f'Error fetching email with ID {email_id}: {e}')
         email_ids = get_email_ids()
 else:
     print('No emails found')
@@ -185,3 +188,6 @@ else:
     #When creating folder it doesnt accept spaces
     # for example i create a folder zDave Smith
     # the folder created will be zDave
+
+    # want to add if i pass then the email address is added to a array
+    # skips that email address and moves to the next one
