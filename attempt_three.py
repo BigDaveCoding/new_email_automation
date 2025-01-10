@@ -107,6 +107,7 @@ def email_details(email_id):
 def moveEmails(email_ids):
 
     emails_to_delete = []
+    skipped_emails = []
 
     while True:
         # print("Folders available:\n " + "\n".join(folders_list))
@@ -126,17 +127,20 @@ def moveEmails(email_ids):
                 # breakpoint()
                 print(email_id)
                 email_details(email_id)
-                mail.copy(email_id, folder_name)
+                mail.copy(email_id, quoted_folder_name)
                 emails_to_delete.append(email_id)
             break
         elif choice.lower() == 'pass':
+            skipped_emails.extend(email_ids)
             break
         elif choice in folders_list:
+            folder_name = 'z' + choice
+            quoted_folder_name = f'"{folder_name}"'
             for email_id in email_ids:
                 print(email_id)
+                print(f'Moving email to {quoted_folder_name}')
                 email_details(email_id)
-
-                mail.copy(email_id, choice)
+                mail.copy(email_id, quoted_folder_name)
                 emails_to_delete.append(email_id)
             break
         else:
@@ -149,9 +153,12 @@ def moveEmails(email_ids):
     
     mail.expunge()
     os.system('clear')
+    return skipped_emails
     
 
 if email_ids:
+    processed_emails = set()
+    skipped_emails = set()
     while email_ids:
         for i in range(-1, -min(batch_size, len(email_ids))-1, -1):
             print(i)
@@ -159,6 +166,8 @@ if email_ids:
                 print(f'Invalid index: {i}')
                 continue
             email_id = email_ids[i].decode()
+            if email_id in processed_emails:
+                continue
             print(f'Processing email with ID {email_id}')
             try:
                 status, msg_data = mail.fetch(email_id, '(RFC822)')
@@ -174,12 +183,15 @@ if email_ids:
 
                             ids = findAllFromEmails(from_email)
                             print('ids = ' + str(ids))
-                            moveEmails(ids)
+                            skipped = moveEmails(ids)
+                            processed_emails.update(ids)
+                            skipped_emails.update(skipped)
+                            # moveEmails(ids)
                 else:
                     print(f'Failed to fetch email with ID {email_id}')
             except imaplib.IMAP4.error as e:
                 print(f'Error fetching email with ID {email_id}: {e}')
-        email_ids = get_email_ids()
+        email_ids = [eid for eid in get_email_ids() if eid.decode() not in processed_emails and eid.decode() not in skipped_emails]
 else:
     print('No emails found')
 
