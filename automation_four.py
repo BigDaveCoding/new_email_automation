@@ -63,9 +63,45 @@ def findAllEmails(email_ids):
         else:
             print('Failed to fetch email')
             exit()
-    
+
+def moveEmails(ids_from_address):
+    try:
+        for email_id in ids_from_address:
+            status, message = mail.fetch(email_id, '(RFC822)')
+            if status == 'OK':
+                email_message = email.message_from_bytes(message[0][1])
+                from_name, email_address = email.utils.parseaddr(email_message['From'])
+            else:
+                print('Failed to fetch email')
+    except Exception as e:
+        print(f'Error: {e}')
+
+def getFolders():
+    folders_list = []
+    status, folders = mail.list()
+    if status == 'OK':
+        for folder in folders:
+            folder_name = folder.decode().split('"/"')[-1].strip().strip('"')
+            folders_list.append(folder_name)
+    return folders_list
+
+
+
+def moveWhere(folders_list):
+    while True:
+        print("Folders available: \n" + "\n".join(folders_list))
+        print('Type the folder name you want to move the emails to')
+        print("'new' to create a new folder")
+        print("type 'skip' to skip email")
+        print("type 'exit' to exit")
+        user_choice = input()
+        if user_choice.lower() != 'new' or user_choice.lower() != 'skip' or user_choice.lower() != 'exit' or user_choice not in folders_list:
+            print('Invalid choice')
+            continue
+        else:
+            return user_choice
 
 login()
 email_ids = get_email_ids()
-emails_from = findAllEmails(email_ids)
-print(emails_from)
+ids_from_address = findAllEmails(email_ids)
+get_folders = getFolders()
