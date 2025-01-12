@@ -42,6 +42,30 @@ def get_email_ids():
         print('Failed to search emails')
         return []
     
+def findAllEmails(email_ids):
+    for email_id in email_ids[::-1]:
+        status, message = mail.fetch(email_id, '(RFC822)')
+        if status == 'OK':
+            email_message = email.message_from_bytes(message[0][1])
+            from_name, email_address = email.utils.parseaddr(email_message['From'])
+            print(f'from: {from_name}') 
+            print(f'email: {email_address}')
+            print(f'subject: {email_message["Subject"]}')
+
+            status, messages = mail.search(None, f"FROM {email_address}")
+            print(f'You have {len(messages[0].split())} from this sender')
+            
+            if len(messages[0].split()) < 5:
+                print('Less than 5 emails from this sender')
+                continue
+            else:
+                return messages[0].split() 
+        else:
+            print('Failed to fetch email')
+            exit()
+    
 
 login()
 email_ids = get_email_ids()
+emails_from = findAllEmails(email_ids)
+print(emails_from)
